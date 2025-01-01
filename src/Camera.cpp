@@ -107,3 +107,25 @@ void Camera::EnableInputs(GLFWwindow* window)
     // Handle scroll inputs
     glfwSetScrollCallback(window, (void(*)(GLFWwindow *, double, double)) ScrollCallback);
 }
+
+// Set the camera's position
+void Camera::SetPosition(const glm::vec3& position)
+{
+    m_Position = position;
+    m_View = glm::lookAt(m_Position, m_Position + m_Orientation, m_Up);
+}
+
+// Set the camera's orientation (look-at direction)
+void Camera::SetOrientation(const glm::vec3& orientation)
+{
+    m_Orientation = glm::normalize(orientation);
+    m_View = glm::lookAt(m_Position, m_Position + m_Orientation, m_Up);
+}
+
+// Set perspective projection matrix
+void Camera::SetPerspective(float fov, float near, float far)
+{
+    m_Near = near;
+    m_Far = far;
+    m_Projection = glm::perspective(glm::radians(fov), (float)m_Width/m_Height, m_Near, m_Far);
+}
