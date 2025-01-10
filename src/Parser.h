@@ -1,31 +1,26 @@
 #pragma once
-#ifndef SCENE_PARSER_H
-#define SCENE_PARSER_H
-
 #include <fstream>
 #include "Light.h"
 #include <iostream>
+#include <cstring>
 #include <sstream>
 #include <vector>
 #include <glm/glm.hpp>
 
-using glm::vec4;
-using glm::vec3;
+using namespace std;
 
-class SceneParser {
+class Parser {
 public:
     Eye* eye;
-    vec4* globalIllumination;
-    std::vector<Light*>* directionalLights;
-    std::vector<SpotLight*>* focusedLights;
-    std::vector<Sphere*>* sphereObjects;
-    std::vector<Plane*>* planarObjects;
-    std::vector<Surface*>* sceneObjects;
+    vec4* ambientLight;
+    vector<Light*>* lights;
+    vector<SpotLight*>* spotlights;
+    vector<Sphere*>* spheres;
+    vector<Plane*>* planes;
+    vector<Surface*>* objects = new vector<Surface*>();
 
-    SceneParser();
-
-    void loadScene(const std::string& filePath);
-    Light* createDirectionalLight(double x, double y, double z, double lightType);
+    Parser();
+ 
+    void parse(const std::string& fileName);
+    Light* ParseLightDirection(double dirX, double dirY, double dirZ, double lightType);
 };
-
-#endif

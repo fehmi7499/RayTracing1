@@ -1,7 +1,7 @@
 #include "RayTrace.h"
 #include "Parser.h"
 
-Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isUpdated, Ray incomingRay, SceneParser* sceneData) {
+Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isUpdated, Ray incomingRay, Parser* sceneData) {
 
     float pixelWidth = 2.0f / 800.0f;
     float pixelHeight = 2.0f / 800.0f;
@@ -21,9 +21,9 @@ Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isU
     incomingRay.setHitPoint(incomingRay.getRayOrigin() + incomingRay.getRayDirection());
     incomingRay.setSceneObject(nearestSurface);
 
-    for (unsigned int objIdx = 0; objIdx < sceneData->sceneObjects->size(); objIdx++) {
+    for (unsigned int objIdx = 0; objIdx < sceneData->objects->size(); objIdx++) {
         float intersectionDistance = 0.0f;
-        Surface* currentSurface = sceneData->sceneObjects->at(objIdx);
+        Surface* currentSurface = sceneData->objects->at(objIdx);
 
         if (currentSurface != excludedSurface) {
 
@@ -122,7 +122,7 @@ float RenderEngine::ComputeSpecularLighting(const vec3& observerDirection, const
     }
 }
 
-float RenderEngine::ComputeShadowFactor(const Ray& ray, Light* lightSource, SceneParser* sceneData) {
+float RenderEngine::ComputeShadowFactor(const Ray& ray, Light* lightSource, Parser* sceneData) {
     vec3 lightDirection = normalize(lightSource->directionVector);
     float nearestIntersection = INFINITY;
 
@@ -138,8 +138,8 @@ float RenderEngine::ComputeShadowFactor(const Ray& ray, Light* lightSource, Scen
         }
     }
 
-    for (unsigned int objIdx = 0; objIdx < sceneData->sceneObjects->size(); ++objIdx) {
-        Surface* entity = sceneData->sceneObjects->at(objIdx);
+    for (unsigned int objIdx = 0; objIdx < sceneData->objects->size(); ++objIdx) {
+        Surface* entity = sceneData->objects->at(objIdx);
 
         if (entity != ray.getSceneObject()) {
             Ray shadowRay(-lightDirection, ray.getHitPoint());
@@ -182,17 +182,17 @@ Ray RenderEngine::ApplyRefractionSL(const Ray& ray, const vec3& normal, const ve
     return Ray(refractedDir, ray.getHitPoint());
 }
 
-vec4 RenderEngine::CalculatePixelColor(int x, int y, Ray ray, int depth, SceneParser* scene) {
+vec4 RenderEngine::CalculatePixelColor(int x, int y, Ray ray, int depth, Parser* scene) {
     vec3 outputColor(0.0f);
 
     if (ray.getSceneObject()->retrieveMaterialType() == MaterialType::Object) {
         vec3 ambientColor = ray.getSceneObject()->calculateColor(ray.getHitPoint());
-        vec3 ambientLight = vec3(scene->globalIllumination->r, scene->globalIllumination->g, scene->globalIllumination->b);
+        vec3 ambientLight = vec3(scene->ambientLight->r, scene->ambientLight->g, scene->ambientLight->b);
 
         vec3 cumulativeLighting(0.0f);
 
-        for (unsigned int lightIdx = 0; lightIdx < scene->directionalLights->size(); ++lightIdx) {
-            Light* lightSource = scene->directionalLights->at(lightIdx);
+        for (unsigned int lightIdx = 0; lightIdx < scene->lights->size(); ++lightIdx) {
+            Light* lightSource = scene->lights->at(lightIdx);
             vec3 specularReflectance = vec3(0.7f) * lightSource->retrieveIntensity();
             vec3 diffuseReflectance = ray.getSceneObject()->calculateColor(ray.getHitPoint()) * lightSource->retrieveIntensity();
 
@@ -243,8 +243,8 @@ vec4 RenderEngine::CalculatePixelColor(int x, int y, Ray ray, int depth, ScenePa
 }
 
 unsigned char* RenderEngine::RenderImage(const char* sceneFile) {
-    SceneParser* scene = new SceneParser();
-    scene->loadScene(sceneFile);
+    Parser* scene = new Parser();
+    scene->parse(sceneFile);
     auto* imageBuffer = new unsigned char[800 * 800 * 4];
 
     for (int row = 0; row < 800; ++row) {

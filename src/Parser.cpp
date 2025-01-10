@@ -1,138 +1,129 @@
 #include "Parser.h"
-#include "Surface.h"
 
-MaterialType determineObjectType(char objectChar) {
-    std::cout << "Determining object type for: " << objectChar << std::endl;
-    switch (objectChar) {
-        case 'r':
-            return MaterialType::Reflective;
-        case 't':
-            return MaterialType::Transparent;
-        case 'o':
-            return MaterialType::Object;
-        default:
-            return MaterialType::None;
+MaterialType GetObjectType(char objectTypeChar)
+{
+    switch (objectTypeChar)
+    {
+    case 'r':
+        return MaterialType::Reflective;
+    case 't':
+        return MaterialType::Transparent;
+    case 'o':
+        return MaterialType::Object;
+    default:
+        return MaterialType::None;
     }
 }
 
-Sphere* generateSphere(char typeChar, double x, double y, double z, double radius) {
-    std::cout << "Generating sphere with parameters: " << typeChar << ", " << x << ", " << y << ", " << z << ", " << radius << std::endl;
-    MaterialType objType = determineObjectType(typeChar);
-    Sphere* sphere = new Sphere(x, y, z, radius, objType);
+Sphere* CreateSphere(char typeChar, double posX, double posY, double posZ, double radius)
+{
+    MaterialType objectType = GetObjectType(typeChar);
+    Sphere* sphere = new Sphere(posX, posY, posZ, radius, objectType);
     sphere->setSphereRadius(radius);
     return sphere;
 }
 
-Plane* generatePlane(char typeChar, double nx, double ny, double nz, double distance) {
-    std::cout << "Generating plane with parameters: " << typeChar << ", " << nx << ", " << ny << ", " << nz << ", " << distance << std::endl;
-    MaterialType objType = determineObjectType(typeChar);
-    Plane* plane = new Plane(nx, ny, nz, distance, objType);
+Plane* CreatePlane(char typeChar, double normalX, double normalY, double normalZ, double distance)
+{
+    MaterialType objectType = GetObjectType(typeChar);
+    Plane* plane = new Plane(normalX, normalY, normalZ, distance, objectType);
     return plane;
 }
 
-SceneParser::SceneParser() {
-    std::cout << "Initializing SceneParser" << std::endl;
+Parser::Parser() {
     this->eye = new Eye(0, 0, 0);
-    this->globalIllumination = new vec4(0.0f);
-    this->directionalLights = new std::vector<Light*>();
-    this->focusedLights = new std::vector<SpotLight*>();
-    this->sphereObjects = new std::vector<Sphere*>();
-    this->planarObjects = new std::vector<Plane*>();
-    this->sceneObjects = new std::vector<Surface*>();
-}
+    this->ambientLight = new glm::vec4(0.0f);
+    this->lights = new std::vector<Light*>();
+    this->spotlights = new std::vector<SpotLight*>();
+    this->spheres = new std::vector<Sphere*>();
+    this->planes = new std::vector<Plane*>();
+};
 
-void SceneParser::loadScene(const std::string& filePath) {
-    std::cout << "Loading scene from file: " << filePath << std::endl;
-    int colorIdx = 0, positionIdx = 0, intensityIdx = 0;
+void Parser::parse(const std::string& fileName)
+{
+    int colorIndex = 0, positionIndex = 0, intensityIndex = 0;
 
-    char objectChar = 'a';
-    double param1 = 1, param2 = 1, param3 = 1, param4 = 1;
+    char objectTypeChar = 'a';
+    double paramX1 = 1, paramX2 = 1, paramX3 = 1, paramX4 = 1;
 
-    std::ifstream sceneFile(filePath);
-    if (!sceneFile) {
-        std::cerr << "Failed to open file: " << filePath << std::endl;
+    std::ifstream inputFile(fileName);
+    if (!inputFile) {
+        std::cerr << "Error opening file " << fileName << ": " << std::strerror(errno) << std::endl;
         return;
     }
 
     std::string line;
-    while (std::getline(sceneFile, line)) {
-        std::cout << "Processing line: " << line << std::endl;
-        char identifier = 'a';
-        std::vector<double> values;
+    while (std::getline(inputFile, line)) {
+        char lineTypeChar = 'a';
+        std::vector<double> parameters;
 
         std::istringstream lineStream(line);
-        lineStream >> identifier;
+        lineStream >> lineTypeChar;
 
-        double value;
-        while (lineStream >> value) {
-            values.push_back(value);
+        double number;
+
+        while (lineStream >> number) {
+            parameters.push_back(number);
         }
 
-        if (values.size() >= 4) {
-            param1 = values[0];
-            param2 = values[1];
-            param3 = values[2];
-            param4 = values[3];
+        if (parameters.size() >= 4) {
+            paramX1 = parameters[0];
+            paramX2 = parameters[1];
+            paramX3 = parameters[2];
+            paramX4 = parameters[3];
         }
 
-        objectChar = identifier;
-        std::cout << "Parsed object type: " << objectChar << std::endl;
+        objectTypeChar = lineTypeChar;
 
-        switch (objectChar) {
-            case 'e':
-                std::cout << "Creating camera at position: " << param1 << ", " << param2 << ", " << param3 << std::endl;
-                this->eye = new Eye(param1, param2, param3);
-                break;
-            case 'a':
-                std::cout << "Setting ambient light to: " << param1 << ", " << param2 << ", " << param3 << ", " << param4 << std::endl;
-                this->globalIllumination = new vec4(param1, param2, param3, param4);
-                break;
-            case 'd':
-                std::cout << "Creating directional light" << std::endl;
-                createDirectionalLight(param1, param2, param3, param4);
-                break;
-            case 'p':
-                std::cout << "Updating spotlight position and angle" << std::endl;
-                this->focusedLights->at(positionIdx)->configurePosition(param1, param2, param3);
-                this->focusedLights->at(positionIdx)->configureAngle(param4);
-                positionIdx++;
-                break;
-            case 'i':
-                std::cout << "Setting light intensity" << std::endl;
-                this->directionalLights->at(intensityIdx)->configureIntensity(vec4(param1, param2, param3, param4));
-                intensityIdx++;
-                break;
-            case 'c':
-                std::cout << "Setting object color and shininess" << std::endl;
-                this->sceneObjects->at(colorIdx)->assignColor(vec4(param1, param2, param3, param4));
-                this->sceneObjects->at(colorIdx)->assignGlossiness(param4);
-                colorIdx++;
-                break;
-            default:
-                std::cout << "Creating object of type: " << objectChar << std::endl;
-                if (param4 > 0) {
-                    Sphere* sphere = generateSphere(objectChar, param1, param2, param3, param4);
-                    this->sphereObjects->push_back(sphere);
-                    this->sceneObjects->push_back(sphere);
-                } else {
-                    Plane* plane = generatePlane(objectChar, param1, param2, param3, param4);
-                    this->planarObjects->push_back(plane);
-                    this->sceneObjects->push_back(plane);
-                }
+        switch (objectTypeChar)
+        {
+        case 'e':
+            this->eye = new Eye(paramX1, paramX2, paramX3);
+            break;
+        case 'a':
+            this->ambientLight = new vec4(paramX1, paramX2, paramX3, paramX4);
+            break;
+        case 'd':
+            ParseLightDirection(paramX1, paramX2, paramX3, paramX4);
+            break;
+        case 'p':
+            this->spotlights->at(positionIndex)->configurePosition(paramX1, paramX2, paramX3);
+            this->spotlights->at(positionIndex)->configureAngle(paramX4);
+            positionIndex++;
+            break;
+        case 'i':
+            this->lights->at(intensityIndex)->configureIntensity(vec4(paramX1, paramX2, paramX3, paramX4));
+            intensityIndex++;
+            break;
+        case 'c':
+            this->objects->at(colorIndex)->assignColor(vec4(paramX1, paramX2, paramX3, paramX4));
+            this->objects->at(colorIndex)->assignGlossiness(paramX4);
+            colorIndex++;
+            break;
+        default:
+            if (paramX4 > 0) {
+                Sphere* sphere = CreateSphere(objectTypeChar, paramX1, paramX2, paramX3, paramX4);
+                this->spheres->push_back(sphere);
+                this->objects->push_back(sphere);
+            } else {
+                Plane* plane = CreatePlane(objectTypeChar, paramX1, paramX2, paramX3, paramX4);
+                this->planes->push_back(plane);
+                this->objects->push_back(plane);
+            }
         }
     }
 }
 
-Light* SceneParser::createDirectionalLight(double x, double y, double z, double lightType) {
-    std::cout << "Creating directional or spotlight with parameters: " << x << ", " << y << ", " << z << ", type: " << lightType << std::endl;
+Light* Parser::ParseLightDirection(double dirX, double dirY, double dirZ, double lightType)
+{
     Light* light = nullptr;
     if (lightType == 1) {
-        light = new SpotLight(vec3(x, y, z));
-        this->focusedLights->push_back(static_cast<SpotLight*>(light));
+        light = new SpotLight(vec3(dirX, dirY, dirZ));
+        this->spotlights->push_back((SpotLight*)light);
     } else {
-        light = new DirectionalLight(vec3(x, y, z));
+        light = new DirectionalLight(vec3(dirX, dirY, dirZ));
     }
-    light->configureDirection(x, y, z);
-    this->directionalLights->push_back(light);
+    light->configureDirection(dirX, dirY, dirZ);
+    this->lights->push_back(light);
     return light;
 }
