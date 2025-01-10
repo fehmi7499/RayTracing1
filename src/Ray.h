@@ -1,16 +1,22 @@
-#ifndef RAY_H
-#define RAY_H
-
+#pragma once
 #include <glm/glm.hpp>
+#include "Surface.h"
 
-struct Ray
-{
-    glm::vec3 origin;   // Starting point of the view
-    glm::vec3 direction;  // Direction the ray is traveling (normalized)
+class Ray {
+    public:
+        Ray(const glm::vec3& direction, const glm::vec3& origin);
 
-    Ray(const glm::vec3& orig, const glm::vec3& dir)
-        : origin(orig), direction(glm::normalize(dir)) {}
+        glm::vec3 getRayDirection() const;
+        glm::vec3 getRayOrigin() const;
+        glm::vec3 getHitPoint() const;
+        Surface* getSceneObject() const;
+
+        void setRayDirection(const glm::vec3& dir);
+        void setRayOrigin(const glm::vec3& origin);
+        void setHitPoint(const glm::vec3& point);
+        void setSceneObject(Surface* obj);
+
+    private:
+        glm::vec3 direction, origin, hitPoint;
+        Surface* sceneObject;
 };
-
-
-#endif

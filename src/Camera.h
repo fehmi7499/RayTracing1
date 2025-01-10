@@ -63,7 +63,8 @@ class Camera
 
         inline glm::mat4 GetViewMatrix() const { return m_View; }
         inline glm::mat4 GetProjectionMatrix() const { return m_Projection; }
-        glm::vec3 GetPosition() const { return m_Position; }        
+        glm::vec3 GetPosition() const { return m_Position; }
+        glm::vec3 GetOrientaion() const { return m_Orientation; }        
 
         // New Methods for Ray Tracing Support
         void SetPosition(const glm::vec3& position);
