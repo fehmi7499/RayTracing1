@@ -11,7 +11,6 @@ using glm::vec4;
 
 enum class MaterialType { Object, Reflective, Transparent, None };
 enum class GeometryType { Plane, Sphere };
-
 enum class IlluminationType { Directional, Spotlight };
 
 class Surface {

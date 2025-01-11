@@ -36,13 +36,6 @@ class Camera
         float m_Right = 1.0f;
         float m_Bottom = -1.0f; 
         float m_Top = 1.0f;
-
-        //update the view Matrix
-        void UpdateViewMatrix() 
-        {
-            m_View = glm::lookAt(m_Position, m_Position + m_Orientation, m_Up);
-        }
-
     public:
         // Prevent the camera from jumping around when first clicking left click
         double m_OldMouseX = 0.0;
@@ -51,10 +44,8 @@ class Camera
         double m_NewMouseY = 0.0;
     public:
         Camera(int width, int height)
-            : m_Width(width), m_Height(height) {
-                UpdateViewMatrix();
-            };
-    
+            : m_Width(width), m_Height(height) {};
+
         // Update Projection matrix for Orthographic mode
         void SetOrthographic(float near, float far);
 
@@ -63,11 +54,4 @@ class Camera
 
         inline glm::mat4 GetViewMatrix() const { return m_View; }
         inline glm::mat4 GetProjectionMatrix() const { return m_Projection; }
-        glm::vec3 GetPosition() const { return m_Position; }
-        glm::vec3 GetOrientaion() const { return m_Orientation; }        
-
-        // New Methods for Ray Tracing Support
-        void SetPosition(const glm::vec3& position);
-        void SetOrientation(const glm::vec3& orientation);
-        void SetPerspective(float fov, float near, float far);
 };

@@ -26,7 +26,7 @@ GeometryType Surface::retrieveGeometryType() const {
     return geometryType;
 }
 
-vec3 Surface::retrievePosition() const {
+vec3 Surface::retrievePosition() const {  
     return location;
 }
 

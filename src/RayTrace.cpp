@@ -1,5 +1,4 @@
 #include "RayTrace.h"
-#include "Parser.h"
 
 Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isUpdated, Ray incomingRay, Parser* sceneData) {
 
@@ -242,10 +241,12 @@ vec4 RenderEngine::CalculatePixelColor(int x, int y, Ray ray, int depth, Parser*
     return vec4(glm::clamp(outputColor, vec3(0.0f), vec3(1.0f)), 1.0f);
 }
 
-unsigned char* RenderEngine::RenderImage(const char* sceneFile) {
+unsigned char* RenderEngine::RenderImage(const char* sceneFile, int width1, int height1) {
+    height = height1;
+    width =  width1;
     Parser* scene = new Parser();
     scene->parse(sceneFile);
-    auto* imageBuffer = new unsigned char[800 * 800 * 4];
+    auto* imageBuffer = new unsigned char[height * width * 4];
 
     for (int row = 0; row < 800; ++row) {
         for (int col = 0; col < 800; ++col) {

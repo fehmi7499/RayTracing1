@@ -6,7 +6,9 @@
 
 class RenderEngine {
 public:
-    unsigned char* RenderImage(const char* sceneDescription);
+    int height;
+    int width;
+    unsigned char* RenderImage(const char* sceneDescription, int width, int height);
 
 private:
     Ray AdjustRay(int row, int column, Surface* surface, bool modify, Ray reflectionRay, Parser* sceneData);
