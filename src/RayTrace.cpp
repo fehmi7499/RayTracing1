@@ -2,12 +2,12 @@
 
 Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isUpdated, Ray incomingRay, Parser* sceneData) {
 
-    float pixelWidth = 2.0f / 800.0f;
-    float pixelHeight = 2.0f / 800.0f;
+    float pixelWidth = 2.0f / ((float) width);
+    float pixelHeight = 2.0f / ((float) height);
 
     if (!isUpdated) {
-        vec3 topLeftPixel(-1.0f + pixelWidth / 2, 1.0f - pixelHeight / 2, 0);
-        vec3 pixelPosition = topLeftPixel + vec3(col * pixelWidth, -row * pixelHeight, 0);
+        vec3 topLeftPixel(-1 + pixelWidth / 2, 1 - pixelHeight / 2, 0);
+        vec3 pixelPosition = topLeftPixel + vec3(row * pixelWidth, -1 * (col * pixelHeight), 0);
         vec3 cameraPosition = sceneData->eye->getposition();
         vec3 rayDirection = normalize(pixelPosition - cameraPosition);
 
@@ -16,7 +16,7 @@ Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isU
     }
 
     float closestIntersection = INFINITY;
-    Surface* nearestSurface = new Plane(0.0f, 0.0f, 0.0f, 0.0f, MaterialType::None);
+    Surface* nearestSurface = new Plane(0.0, 0.0, 0.0, 0.0, MaterialType::None);
     incomingRay.setHitPoint(incomingRay.getRayOrigin() + incomingRay.getRayDirection());
     incomingRay.setSceneObject(nearestSurface);
 
@@ -31,9 +31,10 @@ Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isU
 
                 if (abs(denominator) < 0.0001f) {
                     intersectionDistance = -1.0f;
-                } else {
-                    intersectionDistance = -(glm::dot(incomingRay.getRayOrigin(), currentSurface->retrievePosition()) + ((Plane*)currentSurface)->retrieveD()) / denominator;
                 }
+                
+                intersectionDistance = -(glm::dot(incomingRay.getRayOrigin(), currentSurface->retrievePosition()) + ((Plane*)currentSurface)->retrieveD()) / denominator;
+                
 
             } else {
                 vec3 originToCenter = incomingRay.getRayOrigin() - currentSurface->retrievePosition();
@@ -145,9 +146,9 @@ float RenderEngine::ComputeShadowFactor(const Ray& ray, Light* lightSource, Pars
             float intersectionDist = 0.0f;
 
             if (entity->retrieveGeometryType() == GeometryType::Plane) {
-                float denominator = glm::dot(shadowRay.getRayDirection(), entity->retrieveParameters());
+                float denominator = glm::dot(shadowRay.getRayDirection(), entity->retrievePosition());
                 if (abs(denominator) > 0.0001f) {
-                    intersectionDist = -(glm::dot(shadowRay.getRayOrigin(), entity->retrieveParameters())) + ((Plane*)entity)->retrieveD() / denominator;
+                    intersectionDist = -(glm::dot(shadowRay.getRayOrigin(), entity->retrievePosition())) + ((Plane*)entity)->retrieveD() / denominator;
                 }
             } else if (entity->retrieveGeometryType() == GeometryType::Sphere) {
                 vec3 originToCenter = shadowRay.getRayOrigin() - entity->retrievePosition();
@@ -238,7 +239,8 @@ vec4 RenderEngine::CalculatePixelColor(int x, int y, Ray ray, int depth, Parser*
         }
     }
 
-    return vec4(glm::clamp(outputColor, vec3(0.0f), vec3(1.0f)), 1.0f);
+    outputColor = glm::clamp(outputColor, vec3(0.0f), vec3(1.0f));
+    return vec4(outputColor, 1.0f);
 }
 
 unsigned char* RenderEngine::RenderImage(const char* sceneFile, int width1, int height1) {
@@ -246,16 +248,16 @@ unsigned char* RenderEngine::RenderImage(const char* sceneFile, int width1, int 
     width =  width1;
     Parser* scene = new Parser();
     scene->parse(sceneFile);
-    auto* imageBuffer = new unsigned char[height * width * 4];
+    auto* imageBuffer = new unsigned char[height1 * width1 * 4];
 
-    for (int row = 0; row < 800; ++row) {
-        for (int col = 0; col < 800; ++col) {
+    for (int row = 0; row < height1; ++row) {
+        for (int col = 0; col < width1; ++col) {
             Ray primaryRay(vec3(0.0f), vec3(0.0f));
             Plane* defaultSurface = new Plane(0.0f, 0.0f, 0.0f, 0.0f, MaterialType::None);
             Ray computedRay = AdjustRay(col, row, defaultSurface, false, primaryRay, scene);
             vec4 pixelColor = CalculatePixelColor(col, row, computedRay, 0, scene);
 
-            int pixelIndex = (col + 800 * row) * 4;
+            int pixelIndex = (col + width1 * row) * 4;
             imageBuffer[pixelIndex] = static_cast<unsigned char>(pixelColor.r * 255);
             imageBuffer[pixelIndex + 1] = static_cast<unsigned char>(pixelColor.g * 255);
             imageBuffer[pixelIndex + 2] = static_cast<unsigned char>(pixelColor.b * 255);

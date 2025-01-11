@@ -2,7 +2,7 @@
 #include <cmath>
 
 void Surface::assignColor(const vec4& colorWithAlpha) {
-    surfaceColor = vec3(colorWithAlpha);
+    surfaceColor = vec3(colorWithAlpha.r, colorWithAlpha.g, colorWithAlpha.b);
     glossiness = colorWithAlpha.w;    
 }
 
@@ -14,7 +14,7 @@ float Surface::retrieveGlossiness() const {
     return glossiness;
 }
 
-vec3 Surface::retrieveParameters() const {
+vec4 Surface::retrieveParameters() const {
     return parameters;
 }
 
@@ -55,18 +55,18 @@ vec3 Sphere::calculateColor(const vec3& intersectionPoint) const {
 }
 
 Plane::Plane(double a, double b, double c, double d, MaterialType matType) {
-    parameters = vec4(a, b, c, d);
-    location = vec3(a, b, c);
-    materialType = matType;
-    geometryType = GeometryType::Plane;
+    this->parameters = vec4(a, b, c, d);
+    this->location = vec3(a, b, c);
+    this->materialType = matType;
+    this->geometryType = GeometryType::Plane;
 }
 
 vec3 Plane::retrievePosition() const {
-    return location;
+    return this->location;
 }
 
 float Plane::retrieveD() const {
-    return parameters.w;
+    return this->parameters.w;
 }
 
 vec3 Plane::calculateColor(const vec3& intersectionPoint) const {

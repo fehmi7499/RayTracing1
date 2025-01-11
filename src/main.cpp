@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     const unsigned int height = 800;
     RenderEngine r;
     unsigned char* data = r.RenderImage("res/Scenes/scene1.txt", width, height);
-    stbi_write_png("res/textures/scene.png", width, height, 4,data, width * 4);
+    stbi_write_png("../src/res/textures/scene.png", width, height, 4,data, width * 4);
     free(data);
     return 0;
 }

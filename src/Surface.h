@@ -17,16 +17,16 @@ class Surface {
 protected:
     MaterialType materialType;
     GeometryType geometryType = GeometryType::Plane;
-    vec4 parameters = vec4(0.0f);
-    vec3 surfaceColor = vec3(0.0f);
-    vec3 location = vec3(0.0f);
-    float glossiness = 0.0f;
+    vec4 parameters = vec4(0, 0, 0, 0);
+    vec3 surfaceColor = vec3(0, 0, 0);
+    vec3 location = vec3(0, 0, 0);
+    float glossiness = 0;
 
 public:
     void assignColor(const vec4& colorWithAlpha);
     void assignGlossiness(float gloss);
     float retrieveGlossiness() const;
-    vec3 retrieveParameters() const;
+    vec4 retrieveParameters() const;
     MaterialType retrieveMaterialType() const;
     GeometryType retrieveGeometryType() const;
     vec3 retrievePosition() const;
