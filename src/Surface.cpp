@@ -26,20 +26,28 @@ void Surface::setShininess(float gloss) {
     this->shininess = gloss;
 }
 
-vec4 Surface::setParameters() const {
+vec4 Surface::getParameters() const {
     return parameters;
 }
 
 float Sphere::getRadius() const {
-    return static_cast<float>(sphereRadius);
+    return sphereRadius;
 }
 
 void Sphere::setRadius(double r) {
     sphereRadius = r;
 }
 
+vec3 Sphere::getPosition() const {
+    return this->location;
+}
+
 float Plane::getD() const {
     return this->parameters.w;
+}
+
+vec3 Plane::getPosition() const {
+    return this->location;
 }
 
 Sphere::Sphere(double x, double y, double z, double r, MaterialType matType) {

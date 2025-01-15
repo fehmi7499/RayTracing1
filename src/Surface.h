@@ -32,7 +32,7 @@ public:
     vec3 getPosition() const;
     void setColor(const vec4& colorWithAlpha);
     void setShininess(float gloss);
-    vec4 setParameters() const;
+    vec4 getParameters() const;
     virtual vec3 calculateColor(const vec3& intersectionPoint) const = 0;
 };
 
@@ -43,6 +43,7 @@ private:
 public:
     Sphere(double x, double y, double z, double r, MaterialType matType);
     float getRadius() const;
+    vec3 getPosition() const;
     void setRadius(double r);
     vec3 calculateColor(const vec3& intersectionPoint) const override;
 };
@@ -51,6 +52,7 @@ class Plane : public Surface {
 public:
     Plane(double a, double b, double c, double d, MaterialType matType);
     float getD() const;
+    vec3 getPosition() const;
     vec3 calculateColor(const vec3& intersectionPoint) const override;
 };
 

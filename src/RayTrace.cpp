@@ -24,7 +24,7 @@ Ray RenderEngine::adjustRay(int row, int col, Surface* excludedSurface, bool isU
     reflectedRay.setSceneObject(nearestSurface);
 
     for (unsigned int objIdx = 0; objIdx < input->objects->size(); objIdx++) {
-        float intersectionDistance = 0.0f;
+        float intersectionDistance = 0.0;
         Surface* currentSurface = input->objects->at(objIdx);
 
         if (currentSurface != excludedSurface) {
@@ -33,11 +33,14 @@ Ray RenderEngine::adjustRay(int row, int col, Surface* excludedSurface, bool isU
                 float denominator = dot(reflectedRay.getRayDirection(), currentSurface->getPosition());
 
                 if (abs(denominator) < 0.0001f) {
-                    intersectionDistance = -1.0f;
+                    intersectionDistance = -1.0f; // there is no intersection
                 }
-                
+                // equation of intersection
                 intersectionDistance = -(dot(reflectedRay.getRayOrigin(), currentSurface->getPosition()) + ((Plane*)currentSurface)->getD()) / denominator;
                 
+                if (intersectionDistance < 0.0f) {
+                    intersectionDistance = -1.0f; // there is no intersection
+                }
 
             } else {
                 vec3 originToCenter = reflectedRay.getRayOrigin() - currentSurface->getPosition();
@@ -54,12 +57,15 @@ Ray RenderEngine::adjustRay(int row, int col, Surface* excludedSurface, bool isU
 
                     if (t1 < 0 && t2 < 0) {
                         intersectionDistance = -1.0f;
-                    } else {
-                        intersectionDistance = (t1 >= 0) ? t1 : t2;
+                    } 
 
-                        if (intersectionDistance <= 0.0001f) {
-                            intersectionDistance = (t1 >= 0 && t2 >= 0) ? glm::max(t1, t2) : -1.0f;
-                        }
+                    float first = (t1 >= 0) ? t1 : t2;
+
+                    if(first <= 0.0001f) {
+                        float second = (t1 >= 0 && t2 >= 0) ? glm::max(t1, t2) : -1.0f;
+                        intersectionDistance = second;
+                    } else {
+                        intersectionDistance = first;
                     }
                 }
             }
@@ -78,7 +84,7 @@ Ray RenderEngine::adjustRay(int row, int col, Surface* excludedSurface, bool isU
 
 vec3 RenderEngine::computeNormal(const vec3& contactPoint, Surface* entity) {
     if (entity->getGeometryType() == GeometryType::Plane) {
-        return normalize(vec3(entity->setParameters()));
+        return normalize(vec3(entity->getParameters()));
     }
     return normalize(contactPoint - ((Sphere*)entity)->getPosition());
 }
@@ -151,7 +157,7 @@ float RenderEngine::computeShadowFactor(const Ray& ray, Light* lightSource, Pars
             if (entity->getGeometryType() == GeometryType::Plane) {
                 float denominator = dot(shadowRay.getRayDirection(), entity->getPosition());
                 if (abs(denominator) > 0.0001f) {
-                    intersectionDist = -(dot(shadowRay.getRayOrigin(), entity->getPosition())) + ((Plane*)entity)->getD() / denominator;
+                    intersectionDist = -(dot(shadowRay.getRayOrigin(), entity->getPosition()) + ((Plane*)entity)->getD()) / denominator;
                 }
             } else if (entity->getGeometryType() == GeometryType::Sphere) {
                 vec3 originToCenter = shadowRay.getRayOrigin() - entity->getPosition();

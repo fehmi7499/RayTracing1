@@ -26,7 +26,7 @@ SpotLight::SpotLight(const vec3& _direction) {
     illuminationType = IlluminationType::Spotlight;
     direction = _direction;
     angle = 0.0f;
-    position = vec3(0.0f);
+    position = vec3(0, 0, 0);
 }
 
 void SpotLight::setPosition(float x, float y, float z) {

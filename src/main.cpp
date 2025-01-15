@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     const unsigned int width = 800; //why 800?
     const unsigned int height = 800;
     RenderEngine r;
-    unsigned char* data = r.RenderImage("res/Scenes/scene3.txt", width, height);
+    unsigned char* data = r.RenderImage("res/Scenes/scene6.txt", width, height);
     stbi_write_png("../src/res/textures/scene.png", width, height, 4,data, width * 4);
     free(data);
     return 0;

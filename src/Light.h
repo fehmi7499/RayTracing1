@@ -31,7 +31,7 @@ class DirectionalLight : public Light {
 class SpotLight : public Light { 
     private: 
         vec3 position; 
-        float angle; 
+        float angle = 0;; 
 
     public: 
         SpotLight(const vec3 &direction); 

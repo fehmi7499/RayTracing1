@@ -3,7 +3,7 @@
 using namespace glm;
 
 Ray::Ray(const vec3& direction, const vec3& origin)
-    : direction(direction), origin(origin), sceneObject(nullptr) {}
+    : direction(direction), origin(origin), hitPoint((origin + direction)), sceneObject((new Plane(0.0, 0.0, 0.0, 0.0, MaterialType::None))) {}
 
 vec3 Ray::getRayDirection() const { return direction; }
 vec3 Ray::getRayOrigin() const { return origin; }
