@@ -1,33 +1,45 @@
 #include "Surface.h"
 #include <cmath>
 
-void Surface::assignColor(const vec4& colorWithAlpha) {
-    surfaceColor = vec3(colorWithAlpha.r, colorWithAlpha.g, colorWithAlpha.b);
-    glossiness = colorWithAlpha.w;    
-}
-
-void Surface::assignGlossiness(float gloss) {
-    this->glossiness = gloss;
-}
-
-float Surface::retrieveGlossiness() const {
-    return glossiness;
-}
-
-vec4 Surface::retrieveParameters() const {
-    return parameters;
-}
-
-MaterialType Surface::retrieveMaterialType() const {
+MaterialType Surface::getMaterialType() const {
     return materialType;
 }
 
-GeometryType Surface::retrieveGeometryType() const {
+GeometryType Surface::getGeometryType() const {
     return geometryType;
 }
 
-vec3 Surface::retrievePosition() const {  
+float Surface::getShininess() const {
+    return shininess;
+}
+
+vec3 Surface::getPosition() const {  
     return location;
+}
+
+void Surface::setColor(const vec4& colorWithAlpha) {
+    surfaceColor = vec3(colorWithAlpha.r, colorWithAlpha.g, colorWithAlpha.b);
+    shininess = colorWithAlpha.w;    
+}
+
+void Surface::setShininess(float gloss) {
+    this->shininess = gloss;
+}
+
+vec4 Surface::setParameters() const {
+    return parameters;
+}
+
+float Sphere::getRadius() const {
+    return static_cast<float>(sphereRadius);
+}
+
+void Sphere::setRadius(double r) {
+    sphereRadius = r;
+}
+
+float Plane::getD() const {
+    return this->parameters.w;
 }
 
 Sphere::Sphere(double x, double y, double z, double r, MaterialType matType) {
@@ -38,22 +50,6 @@ Sphere::Sphere(double x, double y, double z, double r, MaterialType matType) {
     geometryType = GeometryType::Sphere;
 }
 
-void Sphere::setSphereRadius(double r) {
-    sphereRadius = r;
-}
-
-vec3 Sphere::retrievePosition() const {
-    return location;
-}
-
-float Sphere::retrieveRadius() const {
-    return static_cast<float>(sphereRadius);
-}
-
-vec3 Sphere::calculateColor(const vec3& intersectionPoint) const {
-    return surfaceColor;
-}
-
 Plane::Plane(double a, double b, double c, double d, MaterialType matType) {
     this->parameters = vec4(a, b, c, d);
     this->location = vec3(a, b, c);
@@ -61,15 +57,11 @@ Plane::Plane(double a, double b, double c, double d, MaterialType matType) {
     this->geometryType = GeometryType::Plane;
 }
 
-vec3 Plane::retrievePosition() const {
-    return this->location;
+vec3 Sphere::calculateColor(const vec3& intersectionPoint) const {
+    return surfaceColor;
 }
 
-float Plane::retrieveD() const {
-    return this->parameters.w;
-}
-
-vec3 Plane::calculateColor(const vec3& intersectionPoint) const {
+vec3 Plane::calculateColor(const vec3& intersectionPoint) const { //shoo hadul??
     float patternScale = 0.5f;
     float chesspattern = 0.0f;
 

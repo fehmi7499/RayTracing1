@@ -9,37 +9,36 @@
 #include "Ray.h" 
 #include "Eye.h" 
 
-using glm::vec3; using glm::vec4; 
+using namespace glm;
 
 class Light {
-public: 
- vec3 directionVector; 
- vec3 lightIntensity; 
- float glossiness = 0.0f; 
- IlluminationType illuminationType; 
+    public: 
+        vec3 direction; 
+        vec3 intensity; //color
+        float shininess = 0.0f; 
+        IlluminationType illuminationType;
 
- void configureDirection(float x, float y, float z); 
- void configureIntensity(const vec4 &intensityVector); 
- vec3 retrieveIntensity() const; 
+        void setDirection(float x, float y, float z); 
+        void setIntensity(const vec4 &intensity);
+        vec3 getIntensity() const; 
 }; 
 
-class DirectionalLight: public Light {
-public: 
- DirectionalLight(const vec3 &direction); 
+class DirectionalLight : public Light {
+    public: 
+        DirectionalLight(const vec3 &direction); 
 }; 
 
 class SpotLight : public Light { 
- private: 
- vec3 lightPosition; 
- float angle = 0.0f; 
-  
- public: 
-  
- SpotLight(const vec3 &direction); 
- void configurePosition(float x, float y, float z); 
- void configureAngle(float angleValue); 
- float retrieveAngle() const; 
- vec3 retrievePosition() const; 
+    private: 
+        vec3 position; 
+        float angle; 
+
+    public: 
+        SpotLight(const vec3 &direction); 
+        void setPosition(float x, float y, float z); 
+        vec3 getPosition() const; 
+        void setAngle(float angleValue); 
+        float getAngle() const; 
 }; 
   
 # endif 

@@ -1,42 +1,47 @@
 #include "Light.h"
 
-void Light::configureDirection(float x, float y, float z) {
-    directionVector = vec3(x, y, z);
+void Light::setDirection(float x, float y, float z) {
+    direction = vec3(x, y, z);
 }
 
-void Light::configureIntensity(const vec4& intensityVector) {
-    lightIntensity = vec3(intensityVector.r, intensityVector.g, intensityVector.b);
-    glossiness = intensityVector.w;
+void Light::setIntensity(const vec4& _intensity) {
+    intensity = vec3(_intensity.r, _intensity.g, _intensity.b);
+    shininess = _intensity.w; 
 }
 
-vec3 Light::retrieveIntensity() const {
-    return lightIntensity;
+vec3 Light::getIntensity() const {
+    return intensity;
 }
 
-DirectionalLight::DirectionalLight(const vec3& direction) {
+//----------------------------------------
+
+DirectionalLight::DirectionalLight(const vec3& _direction) {
     illuminationType = IlluminationType::Directional;
-    directionVector = direction;
+    direction = _direction;
 }
 
-SpotLight::SpotLight(const vec3& direction) {
+//----------------------------------------
+
+SpotLight::SpotLight(const vec3& _direction) {
     illuminationType = IlluminationType::Spotlight;
-    directionVector = direction;
+    direction = _direction;
     angle = 0.0f;
-    lightPosition = vec3(0.0f);
+    position = vec3(0.0f);
 }
 
-void SpotLight::configurePosition(float x, float y, float z) {
-    lightPosition = vec3(x, y, z);
+void SpotLight::setPosition(float x, float y, float z) {
+    position = vec3(x, y, z);
 }
 
-void SpotLight::configureAngle(float angleValue) {
+vec3 SpotLight::getPosition() const {
+    return position;
+}
+
+void SpotLight::setAngle(float angleValue) {
     angle = angleValue;
 }
 
-float SpotLight::retrieveAngle() const {
+float SpotLight::getAngle() const { //fixed
     return angle;
 }
 
-vec3 SpotLight::retrievePosition() const {
-    return lightPosition;
-}

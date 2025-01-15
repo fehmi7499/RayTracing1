@@ -1,46 +1,49 @@
 #include "RayTrace.h"
 
-Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isUpdated, Ray incomingRay, Parser* sceneData) {
+using namespace glm;
 
-    float pixelWidth = 2.0f / ((float) width);
+//reflectedRay 
+Ray RenderEngine::adjustRay(int row, int col, Surface* excludedSurface, bool isUpdated, Ray reflectedRay, Parser* input) {
+
+    float pixelWidth = 2.0f / ((float) width); //why 2?
     float pixelHeight = 2.0f / ((float) height);
 
     if (!isUpdated) {
         vec3 topLeftPixel(-1 + pixelWidth / 2, 1 - pixelHeight / 2, 0);
         vec3 pixelPosition = topLeftPixel + vec3(row * pixelWidth, -1 * (col * pixelHeight), 0);
-        vec3 cameraPosition = sceneData->eye->getposition();
+        vec3 cameraPosition = input->eye->getposition();
         vec3 rayDirection = normalize(pixelPosition - cameraPosition);
 
-        incomingRay.setRayDirection(rayDirection);
-        incomingRay.setRayOrigin(cameraPosition);
+        reflectedRay.setRayDirection(rayDirection);
+        reflectedRay.setRayOrigin(cameraPosition);
     }
 
     float closestIntersection = INFINITY;
     Surface* nearestSurface = new Plane(0.0, 0.0, 0.0, 0.0, MaterialType::None);
-    incomingRay.setHitPoint(incomingRay.getRayOrigin() + incomingRay.getRayDirection());
-    incomingRay.setSceneObject(nearestSurface);
+    reflectedRay.setHitPoint(reflectedRay.getRayOrigin() + reflectedRay.getRayDirection());
+    reflectedRay.setSceneObject(nearestSurface);
 
-    for (unsigned int objIdx = 0; objIdx < sceneData->objects->size(); objIdx++) {
+    for (unsigned int objIdx = 0; objIdx < input->objects->size(); objIdx++) {
         float intersectionDistance = 0.0f;
-        Surface* currentSurface = sceneData->objects->at(objIdx);
+        Surface* currentSurface = input->objects->at(objIdx);
 
         if (currentSurface != excludedSurface) {
 
-            if (currentSurface->retrieveGeometryType() == GeometryType::Plane) {
-                float denominator = glm::dot(incomingRay.getRayDirection(), currentSurface->retrievePosition());
+            if (currentSurface->getGeometryType() == GeometryType::Plane) {
+                float denominator = dot(reflectedRay.getRayDirection(), currentSurface->getPosition());
 
                 if (abs(denominator) < 0.0001f) {
                     intersectionDistance = -1.0f;
                 }
                 
-                intersectionDistance = -(glm::dot(incomingRay.getRayOrigin(), currentSurface->retrievePosition()) + ((Plane*)currentSurface)->retrieveD()) / denominator;
+                intersectionDistance = -(dot(reflectedRay.getRayOrigin(), currentSurface->getPosition()) + ((Plane*)currentSurface)->getD()) / denominator;
                 
 
             } else {
-                vec3 originToCenter = incomingRay.getRayOrigin() - currentSurface->retrievePosition();
-                float a = dot(incomingRay.getRayDirection(), incomingRay.getRayDirection());
-                float b = 2.0f * dot(originToCenter, incomingRay.getRayDirection());
-                float c = dot(originToCenter, originToCenter) - pow(((Sphere*)currentSurface)->retrieveRadius(), 2);
+                vec3 originToCenter = reflectedRay.getRayOrigin() - currentSurface->getPosition();
+                float a = dot(reflectedRay.getRayDirection(), reflectedRay.getRayDirection());
+                float b = 2.0f * dot(originToCenter, reflectedRay.getRayDirection());
+                float c = dot(originToCenter, originToCenter) - pow(((Sphere*)currentSurface)->getRadius(), 2);
                 float discriminant = b * b - 4 * a * c;
 
                 if (discriminant < 0) {
@@ -64,97 +67,97 @@ Ray RenderEngine::AdjustRay(int row, int col, Surface* excludedSurface, bool isU
             if ((intersectionDistance >= 0) && intersectionDistance < closestIntersection) {
                 nearestSurface = currentSurface;
                 closestIntersection = intersectionDistance;
-                incomingRay.setSceneObject(nearestSurface);
-                incomingRay.setHitPoint(incomingRay.getRayOrigin() + incomingRay.getRayDirection() * closestIntersection);
+                reflectedRay.setSceneObject(nearestSurface);
+                reflectedRay.setHitPoint(reflectedRay.getRayOrigin() + reflectedRay.getRayDirection() * closestIntersection);
             }
         }
     }
 
-    return incomingRay;
+    return reflectedRay;
 }
 
-vec3 RenderEngine::ComputeNormal(const vec3& contactPoint, Surface* entity) {
-    if (entity->retrieveGeometryType() == GeometryType::Plane) {
-        return normalize(vec3(entity->retrieveParameters()));
+vec3 RenderEngine::computeNormal(const vec3& contactPoint, Surface* entity) {
+    if (entity->getGeometryType() == GeometryType::Plane) {
+        return normalize(vec3(entity->setParameters()));
     }
-    return normalize(contactPoint - ((Sphere*)entity)->retrievePosition());
+    return normalize(contactPoint - ((Sphere*)entity)->getPosition());
 }
 
-float RenderEngine::ComputeDiffuseLighting(const vec3& surfaceNormal, const Ray& ray, Light* lightSource) {
-    vec3 lightDirection = normalize(lightSource->directionVector);
+float RenderEngine::computeDiffuseLighting(const vec3& surfaceNormal, const Ray& ray, Light* lightSource) {
+    vec3 lightDirection = normalize(lightSource->direction);
     if (lightSource->illuminationType == IlluminationType::Directional) {
-        float cosTheta = dot(surfaceNormal, (ray.getSceneObject()->retrieveGeometryType() == GeometryType::Plane) ? lightDirection : -lightDirection);
+        float cosTheta = dot(surfaceNormal, (ray.getSceneObject()->getGeometryType() == GeometryType::Plane) ? lightDirection : -lightDirection);
         return glm::max(cosTheta, 0.0f);
     } else {
-        vec3 spotlightDirection = normalize(ray.getHitPoint() - ((SpotLight*)lightSource)->retrievePosition());
+        vec3 spotlightDirection = normalize(ray.getHitPoint() - ((SpotLight*)lightSource)->getPosition());
         float cosTheta = dot(spotlightDirection, lightDirection);
 
-        if (cosTheta < ((SpotLight*)lightSource)->retrieveAngle()) {
+        if (cosTheta < ((SpotLight*)lightSource)->getAngle()) {
             return 0.0f;
         } else {
-            lightDirection = (ray.getSceneObject()->retrieveGeometryType() == GeometryType::Plane) ? -spotlightDirection : spotlightDirection;
+            lightDirection = (ray.getSceneObject()->getGeometryType() == GeometryType::Plane) ? -spotlightDirection : spotlightDirection;
             cosTheta = dot(surfaceNormal, -lightDirection);
             return glm::max(cosTheta, 0.0f);
         }
     }
 }
 
-float RenderEngine::ComputeSpecularLighting(const vec3& observerDirection, const Ray& ray, Light* lightSource) {
-    vec3 lightDirection = normalize(lightSource->directionVector);
-    vec3 surfaceNormal = ComputeNormal(ray.getHitPoint(), ray.getSceneObject());
+float RenderEngine::computeSpecularLighting(const vec3& viewPoint, const Ray& ray, Light* lightSource) {
+    vec3 lightDirection = normalize(lightSource->direction);
+    vec3 surfaceNormal = computeNormal(ray.getHitPoint(), ray.getSceneObject());
 
     if (lightSource->illuminationType == IlluminationType::Directional) {
         vec3 reflectedRay = lightDirection - 2.0f * surfaceNormal * dot(lightDirection, surfaceNormal);
-        float cosTheta = dot(observerDirection, reflectedRay);
-        return pow(glm::max(0.0f, cosTheta), ray.getSceneObject()->retrieveGlossiness());
+        float cosTheta = dot(viewPoint, reflectedRay);
+        return pow(glm::max(0.0f, cosTheta), ray.getSceneObject()->getShininess());
     } else {
-        vec3 spotlightDirection = normalize(ray.getHitPoint() - ((SpotLight*)lightSource)->retrievePosition());
+        vec3 spotlightDirection = normalize(ray.getHitPoint() - ((SpotLight*)lightSource)->getPosition());
         float cosTheta = dot(spotlightDirection, lightDirection);
 
-        if (cosTheta < ((SpotLight*)lightSource)->retrieveAngle()) {
+        if (cosTheta < ((SpotLight*)lightSource)->getAngle()) {
             return 0.0f;
         } else {
             lightDirection = spotlightDirection;
             vec3 reflectedRay = lightDirection - 2.0f * surfaceNormal * dot(lightDirection, surfaceNormal);
-            cosTheta = dot(observerDirection, reflectedRay);
-            return pow(glm::max(0.0f, cosTheta), ray.getSceneObject()->retrieveGlossiness());
+            cosTheta = dot(viewPoint, reflectedRay);
+            return pow(glm::max(0.0f, cosTheta), ray.getSceneObject()->getShininess());
         }
     }
 }
 
-float RenderEngine::ComputeShadowFactor(const Ray& ray, Light* lightSource, Parser* sceneData) {
-    vec3 lightDirection = normalize(lightSource->directionVector);
+float RenderEngine::computeShadowFactor(const Ray& ray, Light* lightSource, Parser* input) {
+    vec3 lightDirection = normalize(lightSource->direction);
     float nearestIntersection = INFINITY;
 
     if (lightSource->illuminationType == IlluminationType::Spotlight) {
-        vec3 spotlightDirection = normalize(ray.getHitPoint() - ((SpotLight*)lightSource)->retrievePosition());
+        vec3 spotlightDirection = normalize(ray.getHitPoint() - ((SpotLight*)lightSource)->getPosition());
         float cosTheta = dot(spotlightDirection, lightDirection);
 
-        if (cosTheta < ((SpotLight*)lightSource)->retrieveAngle()) {
+        if (cosTheta < ((SpotLight*)lightSource)->getAngle()) {
             return 0.0f;
         } else {
             lightDirection = spotlightDirection;
-            nearestIntersection = glm::length(((SpotLight*)lightSource)->retrievePosition() - ray.getHitPoint());
+            nearestIntersection = length(((SpotLight*)lightSource)->getPosition() - ray.getHitPoint());
         }
     }
 
-    for (unsigned int objIdx = 0; objIdx < sceneData->objects->size(); ++objIdx) {
-        Surface* entity = sceneData->objects->at(objIdx);
+    for (unsigned int objIdx = 0; objIdx < input->objects->size(); ++objIdx) {
+        Surface* entity = input->objects->at(objIdx);
 
         if (entity != ray.getSceneObject()) {
             Ray shadowRay(-lightDirection, ray.getHitPoint());
             float intersectionDist = 0.0f;
 
-            if (entity->retrieveGeometryType() == GeometryType::Plane) {
-                float denominator = glm::dot(shadowRay.getRayDirection(), entity->retrievePosition());
+            if (entity->getGeometryType() == GeometryType::Plane) {
+                float denominator = dot(shadowRay.getRayDirection(), entity->getPosition());
                 if (abs(denominator) > 0.0001f) {
-                    intersectionDist = -(glm::dot(shadowRay.getRayOrigin(), entity->retrievePosition())) + ((Plane*)entity)->retrieveD() / denominator;
+                    intersectionDist = -(dot(shadowRay.getRayOrigin(), entity->getPosition())) + ((Plane*)entity)->getD() / denominator;
                 }
-            } else if (entity->retrieveGeometryType() == GeometryType::Sphere) {
-                vec3 originToCenter = shadowRay.getRayOrigin() - entity->retrievePosition();
+            } else if (entity->getGeometryType() == GeometryType::Sphere) {
+                vec3 originToCenter = shadowRay.getRayOrigin() - entity->getPosition();
                 float a = dot(shadowRay.getRayDirection(), shadowRay.getRayDirection());
                 float b = 2.0f * dot(originToCenter, shadowRay.getRayDirection());
-                float c = dot(originToCenter, originToCenter) - pow(((Sphere*)entity)->retrieveRadius(), 2);
+                float c = dot(originToCenter, originToCenter) - pow(((Sphere*)entity)->getRadius(), 2);
                 float discriminant = b * b - 4 * a * c;
 
                 if (discriminant >= 0) {
@@ -172,36 +175,36 @@ float RenderEngine::ComputeShadowFactor(const Ray& ray, Light* lightSource, Pars
     return 1.0f;
 }
 
-Ray RenderEngine::ApplyRefractionSL(const Ray& ray, const vec3& normal, const vec3& rayDirection, float refractiveIndex) {
-    float cosThetaIncident = dot(normal, -ray.getRayDirection());
+Ray RenderEngine::applyRefractionSL(const Ray& ray, const vec3& surfaceNormal, const vec3& rayDirection, float refractiveIndex) {
+    float cosThetaIncident = dot(surfaceNormal, -ray.getRayDirection());
     float sinThetaIncident = sqrt(1.0f - cosThetaIncident * cosThetaIncident);
     float sinThetaRefracted = refractiveIndex * sinThetaIncident;
     float cosThetaRefracted = sqrt(1.0f - sinThetaRefracted * sinThetaRefracted);
 
-    vec3 refractedDir = refractiveIndex * ray.getRayDirection() + (refractiveIndex * cosThetaIncident - cosThetaRefracted) * normal;
+    vec3 refractedDir = refractiveIndex * ray.getRayDirection() + (refractiveIndex * cosThetaIncident - cosThetaRefracted) * surfaceNormal;
     return Ray(refractedDir, ray.getHitPoint());
 }
 
-vec4 RenderEngine::CalculatePixelColor(int x, int y, Ray ray, int depth, Parser* scene) {
+vec4 RenderEngine::calculatePixelColor(int x, int y, Ray ray, int depth, Parser* input) {
     vec3 outputColor(0.0f);
 
-    if (ray.getSceneObject()->retrieveMaterialType() == MaterialType::Object) {
+    if (ray.getSceneObject()->getMaterialType() == MaterialType::Object) {
         vec3 ambientColor = ray.getSceneObject()->calculateColor(ray.getHitPoint());
-        vec3 ambientLight = vec3(scene->ambientLight->r, scene->ambientLight->g, scene->ambientLight->b);
+        vec3 ambientLight = vec3(input->ambientLight->r, input->ambientLight->g, input->ambientLight->b);
 
         vec3 cumulativeLighting(0.0f);
 
-        for (unsigned int lightIdx = 0; lightIdx < scene->lights->size(); ++lightIdx) {
-            Light* lightSource = scene->lights->at(lightIdx);
-            vec3 specularReflectance = vec3(0.7f) * lightSource->retrieveIntensity();
-            vec3 diffuseReflectance = ray.getSceneObject()->calculateColor(ray.getHitPoint()) * lightSource->retrieveIntensity();
+        for (unsigned int lightIdx = 0; lightIdx < input->lights->size(); ++lightIdx) {
+            Light* lightSource = input->lights->at(lightIdx);
+            vec3 specularReflectance = vec3(0.7f) * lightSource->getIntensity();
+            vec3 diffuseReflectance = ray.getSceneObject()->calculateColor(ray.getHitPoint()) * lightSource->getIntensity();
 
-            vec3 surfaceNormal = ComputeNormal(ray.getHitPoint(), ray.getSceneObject());
+            vec3 surfaceNormal = computeNormal(ray.getHitPoint(), ray.getSceneObject());
             vec3 viewVector = normalize(ray.getRayOrigin() - ray.getHitPoint());
 
-            float diffuseIntensity = ComputeDiffuseLighting(surfaceNormal, ray, lightSource);
-            float specularIntensity = ComputeSpecularLighting(viewVector, ray, lightSource);
-            float shadowFactor = ComputeShadowFactor(ray, lightSource, scene);
+            float diffuseIntensity = computeDiffuseLighting(surfaceNormal, ray, lightSource);
+            float specularIntensity = computeSpecularLighting(viewVector, ray, lightSource);
+            float shadowFactor = computeShadowFactor(ray, lightSource, input);
 
             cumulativeLighting += (diffuseReflectance * diffuseIntensity + specularReflectance * specularIntensity) * shadowFactor;
         }
@@ -209,55 +212,55 @@ vec4 RenderEngine::CalculatePixelColor(int x, int y, Ray ray, int depth, Parser*
         outputColor = ambientColor * ambientLight + cumulativeLighting;
     }
 
-    if (ray.getSceneObject()->retrieveMaterialType() == MaterialType::Reflective) {
+    if (ray.getSceneObject()->getMaterialType() == MaterialType::Reflective) {
         if (depth >= 5) {
             return vec4(0.0f);
         }
 
-        vec3 surfaceNormal = ComputeNormal(ray.getHitPoint(), ray.getSceneObject());
+        vec3 surfaceNormal = computeNormal(ray.getHitPoint(), ray.getSceneObject());
         vec3 reflectionVector = ray.getRayDirection() - 2.0f * surfaceNormal * dot(ray.getRayDirection(), surfaceNormal);
 
         Ray reflectedRay(reflectionVector, ray.getHitPoint());
-        reflectedRay = AdjustRay(x, y, ray.getSceneObject(), true, reflectedRay, scene);
+        reflectedRay = adjustRay(x, y, ray.getSceneObject(), true, reflectedRay, input);
 
-        if (reflectedRay.getSceneObject()->retrieveMaterialType() != MaterialType::None) {
-            vec4 reflectedColor = CalculatePixelColor(x, y, reflectedRay, depth + 1, scene);
+        if (reflectedRay.getSceneObject()->getMaterialType() != MaterialType::None) {
+            vec4 reflectedColor = calculatePixelColor(x, y, reflectedRay, depth + 1, input);
             outputColor = vec3(reflectedColor);
         }
     }
 
-    if (ray.getSceneObject()->retrieveMaterialType() == MaterialType::Transparent) {
-        vec3 surfaceNormal = ComputeNormal(ray.getHitPoint(), ray.getSceneObject());
+    if (ray.getSceneObject()->getMaterialType() == MaterialType::Transparent) {
+        vec3 surfaceNormal = computeNormal(ray.getHitPoint(), ray.getSceneObject());
         float refractiveIndex = 1.0f / 1.5f;
 
-        Ray refractedRay = ApplyRefractionSL(ray, surfaceNormal, ray.getRayDirection(), refractiveIndex);
-        refractedRay = AdjustRay(x, y, ray.getSceneObject(), true, refractedRay, scene);
+        Ray refractedRay = applyRefractionSL(ray, surfaceNormal, ray.getRayDirection(), refractiveIndex);
+        refractedRay = adjustRay(x, y, ray.getSceneObject(), true, refractedRay, input);
 
-        if (refractedRay.getSceneObject()->retrieveMaterialType() != MaterialType::None) {
-            vec4 refractedColor = CalculatePixelColor(x, y, refractedRay, depth + 1, scene);
+        if (refractedRay.getSceneObject()->getMaterialType() != MaterialType::None) {
+            vec4 refractedColor = calculatePixelColor(x, y, refractedRay, depth + 1, input);
             outputColor = vec3(refractedColor);
         }
     }
 
-    outputColor = glm::clamp(outputColor, vec3(0.0f), vec3(1.0f));
+    outputColor = clamp(outputColor, vec3(0.0f), vec3(1.0f));
     return vec4(outputColor, 1.0f);
 }
 
-unsigned char* RenderEngine::RenderImage(const char* sceneFile, int width1, int height1) {
-    height = height1;
-    width =  width1;
+unsigned char* RenderEngine::RenderImage(const char* sceneFile, int _width, int _height) {
+    height = _height;
+    width =  _width;
     Parser* scene = new Parser();
     scene->parse(sceneFile);
-    auto* imageBuffer = new unsigned char[height1 * width1 * 4];
+    auto* imageBuffer = new unsigned char[_height * _width * 4];
 
-    for (int row = 0; row < height1; ++row) {
-        for (int col = 0; col < width1; ++col) {
+    for (int row = 0; row < _height; ++row) {
+        for (int col = 0; col < _width; ++col) {
             Ray primaryRay(vec3(0.0f), vec3(0.0f));
             Plane* defaultSurface = new Plane(0.0f, 0.0f, 0.0f, 0.0f, MaterialType::None);
-            Ray computedRay = AdjustRay(col, row, defaultSurface, false, primaryRay, scene);
-            vec4 pixelColor = CalculatePixelColor(col, row, computedRay, 0, scene);
+            Ray computedRay = adjustRay(col, row, defaultSurface, false, primaryRay, scene);
+            vec4 pixelColor = calculatePixelColor(col, row, computedRay, 0, scene);
 
-            int pixelIndex = (col + width1 * row) * 4;
+            int pixelIndex = (col + _width * row) * 4;
             imageBuffer[pixelIndex] = static_cast<unsigned char>(pixelColor.r * 255);
             imageBuffer[pixelIndex + 1] = static_cast<unsigned char>(pixelColor.g * 255);
             imageBuffer[pixelIndex + 2] = static_cast<unsigned char>(pixelColor.b * 255);

@@ -1,9 +1,19 @@
 #include "Parser.h"
 
-MaterialType GetObjectType(char objectTypeChar)
-{
-    switch (objectTypeChar)
-    {
+using namespace std;
+using namespace glm;
+
+Parser::Parser() {
+    this->eye = new Eye(0, 0, 0);
+    this->ambientLight = new vec4(0.0f);
+    this->lights = new vector<Light*>(); 
+    this->spotlights = new vector<SpotLight*>();
+    this->spheres = new vector<Sphere*>();
+    this->planes = new vector<Plane*>();
+};
+
+MaterialType getObjectType(char objType) {
+    switch (objType) {
     case 'r':
         return MaterialType::Reflective;
     case 't':
@@ -15,98 +25,81 @@ MaterialType GetObjectType(char objectTypeChar)
     }
 }
 
-Sphere* CreateSphere(char typeChar, double posX, double posY, double posZ, double radius)
-{
-    MaterialType objectType = GetObjectType(typeChar);
-    Sphere* sphere = new Sphere(posX, posY, posZ, radius, objectType);
-    sphere->setSphereRadius(radius);
-    return sphere;
+Sphere* createSphere(char objType, double x, double y, double z, double r) {
+    return new Sphere(x, y, z, r, getObjectType(objType));
 }
 
-Plane* CreatePlane(char typeChar, double normalX, double normalY, double normalZ, double distance)
-{
-    MaterialType objectType = GetObjectType(typeChar);
-    Plane* plane = new Plane(normalX, normalY, normalZ, distance, objectType);
-    return plane;
+Plane* createPlane(char objType, double x, double y, double z, double d) {
+    return new Plane(x, y, z, d, getObjectType(objType));
 }
 
-Parser::Parser() {
-    this->eye = new Eye(0, 0, 0);
-    this->ambientLight = new glm::vec4(0.0f);
-    this->lights = new std::vector<Light*>();
-    this->spotlights = new std::vector<SpotLight*>();
-    this->spheres = new std::vector<Sphere*>();
-    this->planes = new std::vector<Plane*>();
-};
+void Parser::parse(const std::string& fileName) {
+    int colorIdx = 0;
+    int posIdx = 0;
+    int intensityIdx = 0;
+    char objType = 'a';
+    double v1 = 1, v2 = 1, v3 = 1, v4 = 1;
 
-void Parser::parse(const std::string& fileName)
-{
-    int colorIndex = 0, positionIndex = 0, intensityIndex = 0;
-
-    char objectTypeChar = 'a';
-    double paramX1 = 1, paramX2 = 1, paramX3 = 1, paramX4 = 1;
-
-    std::ifstream inputFile(fileName);
+    ifstream inputFile(fileName);
     if (!inputFile) {
-        std::cerr << "Error opening file " << fileName << ": " << std::strerror(errno) << std::endl;
+        cerr << "Error opening file " << fileName << ": " << strerror(errno) << endl;
         return;
     }
 
-    std::string line;
+    string line;
     while (std::getline(inputFile, line)) {
-        char lineTypeChar = 'a';
-        std::vector<double> parameters;
+        char lineType = 'a';
+        vector<double> params;
 
-        std::istringstream lineStream(line);
-        lineStream >> lineTypeChar;
+        istringstream lineStream(line);
+        lineStream >> lineType;
 
         double number;
 
         while (lineStream >> number) {
-            parameters.push_back(number);
+            params.push_back(number);
         }
 
-        if (parameters.size() >= 4) {
-            paramX1 = parameters[0];
-            paramX2 = parameters[1];
-            paramX3 = parameters[2];
-            paramX4 = parameters[3];
+        if (params.size() >= 4) {
+            v1 = params[0];
+            v2 = params[1];
+            v3 = params[2];
+            v4 = params[3];
         }
 
-        objectTypeChar = lineTypeChar;
+        objType = lineType;
 
-        switch (objectTypeChar)
-        {
+        switch (objType) {
         case 'e':
-            this->eye = new Eye(paramX1, paramX2, paramX3);
+            this->eye = new Eye(v1, v2, v3);
             break;
         case 'a':
-            this->ambientLight = new vec4(paramX1, paramX2, paramX3, paramX4);
+            this->ambientLight = new vec4(v1, v2, v3, v4);
             break;
         case 'd':
-            ParseLightDirection(paramX1, paramX2, paramX3, paramX4);
+            parseLightDirection(v1, v2, v3, v4);
             break;
         case 'p':
-            this->spotlights->at(positionIndex)->configurePosition(paramX1, paramX2, paramX3);
-            this->spotlights->at(positionIndex)->configureAngle(paramX4);
-            positionIndex++;
+            this->spotlights->at(posIdx)->setPosition(v1, v2, v3);
+            this->spotlights->at(posIdx)->setAngle(v4);
+            posIdx++;
             break;
         case 'i':
-            this->lights->at(intensityIndex)->configureIntensity(vec4(paramX1, paramX2, paramX3, paramX4));
-            intensityIndex++;
+            this->lights->at(intensityIdx)->setIntensity(vec4(v1, v2, v3, v4));
+            intensityIdx++;
             break;
         case 'c':
-            this->objects->at(colorIndex)->assignColor(vec4(paramX1, paramX2, paramX3, paramX4));
-            this->objects->at(colorIndex)->assignGlossiness(paramX4);
-            colorIndex++;
+            this->objects->at(colorIdx)->setColor(vec4(v1, v2, v3, v4));
+            this->objects->at(colorIdx)->setShininess(v4);
+            colorIdx++;
             break;
         default:
-            if (paramX4 > 0) {
-                Sphere* sphere = CreateSphere(objectTypeChar, paramX1, paramX2, paramX3, paramX4);
+            if (v4 > 0) {
+                Sphere* sphere = createSphere(objType, v1, v2, v3, v4);
                 this->spheres->push_back(sphere);
                 this->objects->push_back(sphere);
             } else {
-                Plane* plane = CreatePlane(objectTypeChar, paramX1, paramX2, paramX3, paramX4);
+                Plane* plane = createPlane(objType, v1, v2, v3, v4);
                 this->planes->push_back(plane);
                 this->objects->push_back(plane);
             }
@@ -114,16 +107,15 @@ void Parser::parse(const std::string& fileName)
     }
 }
 
-Light* Parser::ParseLightDirection(double dirX, double dirY, double dirZ, double lightType)
-{
-    Light* light = nullptr;
-    if (lightType == 1) {
-        light = new SpotLight(vec3(dirX, dirY, dirZ));
+Light* Parser::parseLightDirection(double x, double y, double z, double lightType) {
+    Light* light = nullptr; 
+    if (lightType == 1) { //spotlight 
+        light = new SpotLight(vec3(x, y, z));
         this->spotlights->push_back((SpotLight*)light);
-    } else {
-        light = new DirectionalLight(vec3(dirX, dirY, dirZ));
+    } else { //directional
+        light = new DirectionalLight(vec3(x, y, z));
     }
-    light->configureDirection(dirX, dirY, dirZ);
+    light->setDirection(x, y, z);
     this->lights->push_back(light);
     return light;
 }
